@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marc Runner</title>
+<style>
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background: linear-gradient(to top, #87ceeb, #f0f0f0);
+    font-family: Arial, sans-serif;
+}
+#gameArea {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+#player {
+    position: absolute;
+    bottom: 50px;
+    left: 50px;
+    width: 50px;
+    height: 80px;
+    background: red;
+    border-radius: 10px;
+}
+.obstacle {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background: green;
+    border-radius: 10px;
+}
+#scoreboard, #level {
+    position: absolute;
+    top: 10px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #000;
+    background: rgba(255,255,255,0.7);
+    padding: 5px 10px;
+    border-radius: 10px;
+}
+#scoreboard { left: 10px; }
+#level { right: 10px; }
+</style>
+</head>
+<body>
+<div id="scoreboard">Score: 0</div>
+<div id="level">Level: 1</div>
+<div id="gameArea">
+    <div id="player"></div>
+</div>
+
+<script>
+const gameArea = document.getElementById("gameArea");
+const player = document.getElementById("player");
+const scoreDisplay = document.getElementById("scoreboard");
+const levelDisplay = document.getElementById("level");
+
+let score = 0;
+let level = 1;
+let obstacles = [];
+let gameInterval, obstacleInterval;
+let isJumping = false;
+let jumpHeight = 150;
+let jumpSpeed = 5;
+let playerBottom = 50;
+
+// Start game automatically when iframe loads
+startGame();
+
+function startGame() {
+    score = 0;
+    level = 1;
+    obstacles.forEach(o => gameArea.removeChild(o.el));
+    obstacles = [];
+    scoreDisplay.textContent = "Score: 0";
+    levelDisplay.textContent = "Level: 1";
+    player.style.bottom = "50px";
+    gameInterval = setInterval(updateGame, 20);
+    obstacleInterval = setInterval(spawnObstacle, Math.max(1500 - level*100, 500));
+}
+
+function updateGame() {
+    // Move obstacles
+    obstacles.forEach(o => {
+        o.x -= o.speed;
+        o.el.style.left = o.x + "px";
+        // Collision detection
+        if(o.x < 100 && o.x + 50 > 50) {
+            if(playerBottom < 50 + 50) {
+                endGame();
+            }
+        }
+    });
+    // Remove offscreen obstacles
+    obstacles = obstacles.filter(o => {
+        if(o.x + 50 < 0) {
+            gameArea.removeChild(o.el);
+            score++;
+            scoreDisplay.textContent = "Score: " + score;
+            if(score % 10 === 0) {
+                level++;
+                levelDisplay.textContent = "Level: " + level;
+            }
+            return false;
+        }
+        return true;
+    });
+    // Handle jump
+    if(isJumping) {
+        if(playerBottom < jumpHeight + 50) {
+            playerBottom += jumpSpeed;
+        } else {
+            isJumping = false;
+        }
+    } else if(playerBottom > 50) {
+        playerBottom -= jumpSpeed;
+    }
+    player.style.bottom = playerBottom + "px";
+}
+
+function spawnObstacle() {
+    const obstacle = document.createElement("div");
+    obstacle.classList.add("obstacle");
+    obstacle.style.bottom = "50px";
+    obstacle.style.left = window.innerWidth + "px";
+    gameArea.appendChild(obstacle);
+    obstacles.push({el: obstacle, x: window.innerWidth, speed: 5 + level});
+}
+
+function endGame() {
+    clearInterval(gameInterval);
+    clearInterval(obstacleInterval);
+    alert("Game Over! Score: " + score + " | Level: " + level);
+    // Restart automatically
+    startGame();
+}
+
+document.addEventListener("keydown", function(e){
+    if(e.code === "Space" || e.code === "ArrowUp") {
+        if(playerBottom === 50) {
+            isJumping = true;
+        }
+    }
+});
+</script>
+</body>
+</html>
